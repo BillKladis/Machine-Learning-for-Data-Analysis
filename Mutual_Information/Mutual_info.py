@@ -1,9 +1,5 @@
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.feature_selection import mutual_info_classif, mutual_info_regression
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 #---------------- Data Loading and Preprocessing(No need for data cleaning or transformation) ----------------
