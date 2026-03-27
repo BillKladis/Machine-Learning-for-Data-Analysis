@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 df=pd.read_csv("Naive-Bayes-Classification-Data.csv", header=0, na_values=["?"])
 X=df.drop("diabetes", axis=1)
 Y=df["diabetes"]
-
+print(X.head())
 
 for colname in X.select_dtypes(["object"]):
     X[colname], _= X[colname].factorize()
