@@ -8,7 +8,7 @@ X=df.copy()
 X=X.drop(["Exited","Exited_Bool"], axis=1)
 Y=df["Exited_Bool"]
 
-X_clean = X.drop(["CustomerId", "Surname", "PerPerAge"], axis=1)
+X_clean = X.drop(["CustomerId", "Surname", "PerPerAge", "PerPerGender"], axis=1)
 
 for colname in X_clean.select_dtypes(["object"]):
     X_clean[colname], _=X_clean[colname].factorize()
