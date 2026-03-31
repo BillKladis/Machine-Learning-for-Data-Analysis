@@ -7,6 +7,8 @@ from sklearn.feature_selection import mutual_info_classif, mutual_info_regressio
 # Set a consistent plotting style
 sns.set_theme(style="whitegrid")
 
+
+
 def load_and_clean_data(file_path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
     """
     Loads the dataset, separates the target variable, and cleans the features.
@@ -26,6 +28,13 @@ def load_and_clean_data(file_path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.
         X_clean[colname], _ = X_clean[colname].factorize()
         
     return X, X_clean, y
+
+def display_distributions(X:pd.DataFrame)-> None:
+    X_melted=pd.melt(frame=X, var_name="Feature", value_name="Value")
+    
+    sns.displot(data=X_melted, x="Value", col="Feature", col_wrap=3, kind="hist", kde=True, facet_kws={"sharex": False, "sharey": False}, common_bins=False, height=3,
+        aspect=1.5, hue="Feature",palette="muted")
+    
 
 def calculate_mi_scores(X: pd.DataFrame, y: pd.Series, task: str = "classification") -> pd.Series:
     """
@@ -92,7 +101,7 @@ def main():
     print("Discrete Features Check:")
     print((X_clean.dtypes == int).head())
     print("-" * 40)
-
+    display_distributions(X_clean)
     # 2. Classification MI Scores (Target: Exited_Bool)
     mi_scores_class = calculate_mi_scores(X_clean, y_target, task="classification")
     print("Classification MI Scores (Target: Exited_Bool):")
