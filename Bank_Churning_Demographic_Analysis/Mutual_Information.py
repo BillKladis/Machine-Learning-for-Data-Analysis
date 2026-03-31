@@ -125,12 +125,20 @@ def main():
     # 5. Feature Engineering and Follow-up MI Tests
     # Note: Creating a binary 'HasBalance' feature to test its specific impact
     X_mi_regression["HasBalance"] = (X_mi_regression["Balance"] > 0).astype(int)
-    
+    print(X_mi_regression.head(20))
     mi_has_balance = mutual_info_classif(X=X_mi_regression[["HasBalance"]], y=y_products, random_state=42)
     mi_raw_balance = mutual_info_classif(X=X_mi_regression[["Balance"]], y=y_products, random_state=42)
     
     print(f"MI Score (HasBalance -> NumOfProducts): {mi_has_balance[0]:.6f}")
     print(f"MI Score (Raw Balance -> NumOfProducts): {mi_raw_balance[0]:.6f}")
-
+    
+    #6. Calculate MI for non-zero balance accounts only, examine if MI is still strong in this case or if zero or non-zero is the only MI signal
+    X_positive=X_clean[X_clean["Balance"]>0]
+    y_positive= y_products[X_clean["Balance"]>0]
+    correlation_subset = X_positive["Balance"].corr(X_positive["NumOfProducts"])
+    print(f"Correlation (Only Balance > 0): {correlation_subset:.4f}")
+    mi_subset_positive=calculate_mi_scores(X=X_positive[["Balance"]], y=y_positive, task="regression")
+    print("Index:", mi_subset_positive.index, "Value:", mi_subset_positive.values)
+    plot_mi_scores(mi_subset_positive, title="Non-Zero Balance")
 if __name__ == "__main__":
     main()
