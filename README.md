@@ -107,22 +107,7 @@ Accuracy is misleading on imbalanced datasets. ROC-AUC summarises the trade-off 
 
 ### Task
 
-Binary classification: predict whether an individual's annual income exceeds \$50 K based on census attributes.
-
-**Dataset** — UCI Adult Census Income (`adult.csv`, ~30 000 rows, 15 features):
-
-| Feature | Type | Description |
-|---------|------|-------------|
-| age | Numeric | Age in years |
-| workclass | Categorical | Employment type (Private, Gov, etc.) |
-| education | Categorical | Highest level attained |
-| occupation | Categorical | Job category |
-| relationship | Categorical | Family role |
-| race, gender | Categorical | Demographic attributes |
-| native-country | Categorical | Country of origin |
-| capital-gain / loss | Numeric | Investment income/loss |
-| hours-per-week | Numeric | Average working hours |
-| income | Binary target | <=50K or >50K |
+Binary classification: predict income >$50K from census attributes (UCI Adult, ~30K rows, 15 features). Target: income (<=50K or >50K).
 
 ### Preprocessing Pipeline
 
@@ -158,21 +143,11 @@ $$\hat{y} = \arg\max_{c} \sum_{i \in N_k(\mathbf{x})} \mathbf{1}[y_i = c]$$
 
 ### Hyperparameter Tuning
 
-k is swept from 1 to 31 (odd values prevent ties). For each k, 5-fold stratified CV computes mean ROC-AUC on the training set. The optimal k is selected at the peak of this curve.
+Swept k ∈ [1, 31] (odd values prevent ties) via 5-fold stratified CV on training ROC-AUC. **Result**: k = 29, ROC-AUC ≈ 0.88. Small k overfits; large k over-smooths; k=29 balances both.
 
-**Result**: k = 29, ROC-AUC ≈ 0.88
+### Results
 
-Small k → high variance (overfits individual noise points). Large k → high bias (smooths decision boundary too aggressively). k = 29 sits in the sweet-spot for this dataset.
-
-### Evaluation
-
-| Metric | Value |
-|--------|-------|
-| ROC-AUC | ~0.88 |
-| Confusion matrix | See `plot_confusion_matrix.png` |
-| Precision / Recall | See `plot_precision_recall.png` |
-
-**Outputs**: `plot_k_tuning.png`, `plot_roc_curve.png`, `plot_confusion_matrix.png`, `plot_precision_recall.png`
+ROC-AUC: ~0.88. **Outputs**: confusion matrix, ROC curve, precision-recall plots.
 
 ---
 
@@ -182,15 +157,7 @@ Small k → high variance (overfits individual noise points). Large k → high b
 
 ### Task
 
-Binary classification: predict whether a patient has diabetes (0 / 1) given glucose level and blood pressure.
-
-**Dataset** (`Naive-Bayes-Classification-Data.csv`):
-
-| Feature | Type |
-|---------|------|
-| glucose | Numeric |
-| bloodpressure | Numeric |
-| diabetes | Binary target (0 = No, 1 = Yes) |
+Binary classification: predict diabetes (0/1) from glucose and blood pressure (`Naive-Bayes-Classification-Data.csv`).
 
 ### Mathematical Foundation — Gaussian Naive Bayes
 
@@ -210,17 +177,9 @@ $$\hat{y} = \arg\max_{c}\left[\log P(y=c) + \sum_{j=1}^{p} \log P(x_j \mid y=c)\
 
 Working in log-space avoids numerical underflow when multiplying many small probabilities.
 
-### Feature Importance (Two Methods)
+### Feature Importance
 
-**Method 1 — Mean difference**: measures how much each feature's class-conditional mean separates the classes.
-
-$$\text{importance}_j = |\mu_{1j} - \mu_{0j}|$$
-
-Implemented as `gnb.theta_[1] - gnb.theta_[0]` (theta stores class means).
-
-**Method 2 — Log-likelihood gap**: for each feature, computes the average log-likelihood ratio between the positive and negative class over the training data. A larger gap means the feature provides more discriminative signal.
-
-$$\text{importance}_j = \mathbb{E}\left[\log P(x_j \mid y=1) - \log P(x_j \mid y=0)\right]$$
+Computed via mean class-conditional difference: $\text{FI}_j = |\mu_{1j} - \mu_{0j}|$. Measures how much each feature separates positive vs. negative classes.
 
 ### Design Decisions
 
@@ -278,11 +237,7 @@ $$G = 1 - \sum_{c} p_c^2$$
 
 ### Result
 
-| Metric | Value |
-|--------|-------|
-| ROC-AUC | ~0.91 |
-
-RF outperforms KNN (~0.88) because it builds non-linear, axis-aligned decision boundaries in high-dimensional space without distance-based sensitivity to scale.
+ROC-AUC: ~0.91 (vs. KNN's 0.88). RF outperforms because it builds non-linear, axis-aligned boundaries without distance-based scale sensitivity.
 
 ---
 
@@ -314,43 +269,23 @@ The `count_items()` helper converts comma-separated strings like `"Python,JavaSc
 
 #### Linear Regression
 
-$$\hat{y} = \mathbf{x}^{\top}\boldsymbol{\beta} = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p$$
-
-Coefficients minimise mean squared error (MSE):
-
-$$\mathcal{L}(\boldsymbol{\beta}) = \frac{1}{n}\|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|_2^2$$
-
-Requires **MinMaxScaler** preprocessing: gradient-based solvers converge faster and coefficient magnitudes are comparable when features share the same scale.
+Minimises MSE: $\mathcal{L}(\boldsymbol{\beta}) = \frac{1}{n}\|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|_2^2$. Requires MinMaxScaler for solver convergence.
 
 #### Lasso Regression
 
-Lasso adds an L1 penalty to the linear regression loss:
-
-$$\mathcal{L}(\boldsymbol{\beta}) = \frac{1}{n}\|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|_2^2 + \lambda\|\boldsymbol{\beta}\|_1$$
-
-The L1 term drives weak coefficients exactly to zero, performing **automatic feature selection**. The regularisation strength λ is chosen via `LassoCV` (5-fold CV over a log-spaced grid), eliminating the need for a manual grid search.
-
-**Key insight**: unlike Ridge (L2 penalty), the L1 penalty produces a non-differentiable corner at β_j = 0, which induces sparsity. Features whose signal-to-noise ratio is too low receive a zero coefficient and are effectively removed.
+Adds L1 penalty for automatic feature selection: $\mathcal{L}(\boldsymbol{\beta}) = \frac{1}{n}\|\mathbf{y} - \mathbf{X}\boldsymbol{\beta}\|_2^2 + \lambda\|\boldsymbol{\beta}\|_1$. The L1 corner at β_j = 0 induces sparsity; weak features get zeroed. λ tuned via LassoCV.
 
 #### Random Forest Regressor
 
-Same ensemble mechanism as the classifier but predicts the **mean** of the leaf values rather than the majority class:
-
-$$\hat{y} = \frac{1}{T}\sum_{t=1}^{T} h_t(\mathbf{x})$$
-
-Splitting criterion: minimise the weighted variance of child nodes.
-
-**No scaling needed**: tree splits depend only on feature rank order, not absolute magnitude.
+Ensemble of trees predicting the mean of leaf values: $\hat{y} = \frac{1}{T}\sum_{t=1}^{T} h_t(\mathbf{x})$. No scaling needed.
 
 ### Evaluation Metrics
 
-$$R^2 = 1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}$$
+**R²**: $1 - \frac{\sum(y_i - \hat{y}_i)^2}{\sum(y_i - \bar{y})^2}$ (fraction of variance explained, 0–1 scale).
 
-$$\text{RMSE} = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}$$
+**RMSE**: $\sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}$ (same units as target).
 
-R² measures explained variance (1.0 = perfect, 0.0 = predicts the mean). RMSE is in the same units as the target (USD), making it directly interpretable.
-
-**Residual analysis** — plotting (ŷ − y) vs ŷ reveals heteroscedasticity, non-linearity, and influential outliers that summary statistics miss.
+**Residual plots**: Reveal heteroscedasticity, non-linearity, and outliers.
 
 ---
 
@@ -377,11 +312,9 @@ For continuous X the sum becomes an integral. Sklearn's `mutual_info_classif` es
 - I(X; Y) = 0 iff X and Y are independent
 - No assumption of linearity or Gaussianity
 
-### Discrete vs. Continuous Features
+### Implementation
 
-The function accepts a `discrete_features` boolean mask. Integer-coded categorical columns use the discrete estimator (plug-in MI); floating-point columns use the continuous estimator. Misclassifying a continuous feature as discrete inflates MI by binning it.
-
-**Supplementary plots**: boxplot of blood pressure by diabetes class, scatter (glucose vs. blood pressure coloured by class), correlation heatmap — together these provide complementary linear and distributional views alongside the non-linear MI ranking.
+Uses k-NN density estimation (Kraskov estimator). Properly classify features as discrete vs. continuous to avoid MI inflation. Complements MI ranking with boxplots, scatter plots, and correlation heatmaps.
 
 ---
 
@@ -409,15 +342,9 @@ Understand which customer attributes drive churn and engineer features for downs
 | EstimatedSalary | Numeric | Annual salary estimate |
 | Exited | Binary target | 1 = churned |
 
-### Script 1 — Data Preprocessing (`Data_editting_for visual.py`)
+### Script 1 — Data Preprocessing
 
-Prepares the dataset for Power BI visualisation:
-
-- **`Exited_Bool`**: boolean cast of `Exited` for clean filtering in BI tools.
-- **`PerPerAge`** and **`PerPerGender`**: pre-aggregated churn rates (%) by age group and gender, reducing load on the BI engine.
-- Type casting (`float32`): reduces memory from 64-bit defaults, important when feeding large tables into Power BI.
-
-Output: `Bank_Churn_edited.csv` → `PowerBI.csv`.
+Prepares dataset for Power BI: boolean `Exited_Bool`, pre-aggregated churn rates by age/gender, float32 type casting for memory efficiency. Output: `Bank_Churn_edited.csv` → `PowerBI.csv`.
 
 ### Script 2 — K-Means Customer Segmentation (`KMeans_feature_eng.py`)
 
@@ -427,15 +354,7 @@ Output: `Bank_Churn_edited.csv` → `PowerBI.csv`.
 
 $$J = \sum_{k=1}^{K}\sum_{\mathbf{x} \in C_k} \|\mathbf{x} - \boldsymbol{\mu}_k\|_2^2$$
 
-**Algorithm (Lloyd's algorithm)**:
-1. Initialise K centroids (k-means++ heuristic for spread initialisation).
-2. Assign each point to the nearest centroid.
-3. Recompute centroids as cluster means.
-4. Repeat until convergence.
-
-Parameters: `n_clusters=6`, `n_init=50` (50 random restarts, keeps the best J to avoid local optima).
-
-**Why 6 clusters?** Experimented to identify financially distinct customer personas. Each cluster is profiled by its mean values and churn rate, surfacing segments like "high-balance low-activity churners" vs. "low-balance loyal customers".
+**Algorithm**: Lloyd's algorithm with k-means++ initialisation. Parameters: `n_clusters=6`, `n_init=50` (50 random restarts for robustness). Profiles each cluster by mean values and churn rate to identify customer personas.
 
 **Outputs**: cluster profile heatmap + churn-rate-per-cluster bar chart.
 
@@ -462,12 +381,7 @@ Feature Engineering & Subset Analysis
      └── re-run MI on Balance > 0 subset
 ```
 
-**Zero-inflation in Balance**: approximately 30–40% of customers have Balance = 0. This bimodal structure means:
-- The raw Balance → NumOfProducts MI is dominated by the zero-mass spike.
-- `HasBalance` captures whether a customer *has* any balance, which turns out to be the dominant signal.
-- Restricting to Balance > 0 and re-running MI reveals the true relationship for active accounts.
-
-This demonstrates the principle of **distributional awareness before feature engineering**: visualise first, then decide whether to transform or segment.
+**Zero-inflation insight**: ~30–40% of Balance values are zero, dominating the MI signal. `HasBalance` binary flag captures the dominant signal. Subset analysis (Balance > 0) reveals true relationships for active accounts. Core lesson: visualise before engineering.
 
 ---
 
@@ -522,78 +436,7 @@ This demonstrates the principle of **distributional awareness before feature eng
 
 ## System Design Overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Raw Data Sources                        │
-│  CSV files (Adult, Diabetes, BankChurn, Salary, Ames)       │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Exploratory Analysis                        │
-│  • Distribution plots (histograms, KDE)                      │
-│  • Correlation matrices                                       │
-│  • Mutual Information rankings                                │
-│  • Zero-inflation checks (Bank Balance)                      │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  Preprocessing Layer                          │
-│  ┌─────────────────┐   ┌───────────────────────────────┐    │
-│  │ train_test_split │   │ Feature Engineering           │    │
-│  │ (stratified 80/20│   │ • count_items() for lists     │    │
-│  │  or KFold CV)   │   │ • HasBalance binary indicator  │    │
-│  └────────┬────────┘   │ • churn rates per demographic │    │
-│           │             └───────────────────────────────┘    │
-│           ▼                                                   │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │  Encoders / Scalers (fit on TRAIN only)             │    │
-│  │  BinaryEncoder → categorical columns               │    │
-│  │  MinMaxScaler  → numeric columns (distance models)  │    │
-│  └─────────────────────────────────────────────────────┘    │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Model Training Layer                       │
-│                                                               │
-│  ┌──────────┐ ┌─────────────┐ ┌───────────────────────┐    │
-│  │ Gaussian │ │  KNN (k=29) │ │   Random Forest        │    │
-│  │ Naive    │ │  Euclidean  │ │   (Bagging + Random    │    │
-│  │ Bayes    │ │  Distance   │ │    Subspaces)          │    │
-│  └──────────┘ └─────────────┘ └───────────────────────┘    │
-│                                                               │
-│  ┌────────────────┐ ┌───────────────┐ ┌────────────────┐   │
-│  │ Linear         │ │ Lasso         │ │ K-Means        │   │
-│  │ Regression     │ │ (L1 + LassoCV)│ │ (Segmentation) │   │
-│  └────────────────┘ └───────────────┘ └────────────────┘   │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Hyperparameter Tuning (CV Loop)                  │
-│  StratifiedKFold (5-fold) on train set only                  │
-│  Metric: ROC-AUC (classification) / R² (regression)         │
-│  Grid: k ∈ [1,31], n_est ∈ [50,350], λ auto via LassoCV    │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Evaluation Layer                           │
-│  • Final metrics on held-out TEST set (touched once)        │
-│  • ROC curve, Precision-Recall curve                         │
-│  • Confusion matrix                                           │
-│  • Residual plots (regression)                               │
-│  • Feature importance plots                                   │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Reporting & Visualisation                   │
-│  matplotlib / seaborn PNGs  ←→  Power BI (.pbix, .csv)     │
-└─────────────────────────────────────────────────────────────┘
-```
+Raw CSV → EDA (distributions, MI, correlations) → Stratified train/test split → Feature engineering → BinaryEncoder/MinMaxScaler (fit on train only) → Model training (Bayes, KNN, RF, Lasso, K-Means) → StratifiedKFold CV hyperparameter tuning → Final evaluation on held-out test → ROC curves, confusion matrices, feature importance plots → Power BI / matplotlib visualisation.
 
 ### Model Selection Guide
 
